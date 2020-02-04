@@ -1,0 +1,4 @@
+Django==2.2.6
+django-background-tasks==1.2.0
+djangorestframework==3.11.0
+kavenegar==1.1.2
