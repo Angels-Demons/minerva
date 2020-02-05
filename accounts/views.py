@@ -3,13 +3,11 @@ import random
 from django.db import transaction
 
 from accounts.models import User, create_profile
-from api import sms_send, sms, log
-from django.shortcuts import render
+from api import sms, log
 from accounts import models
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from accounts.Serializers import UserSerializer
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authtoken.models import Token
@@ -22,55 +20,36 @@ from rest_framework.status import (
 )
 
 
+@csrf_exempt
+@api_view(["POST"])
 @permission_classes((AllowAny,))
-class RegisterView(APIView):
-    # permission_classes = (AllowAny,)
-    def post(self, request):
-        # serializer.save()
-        manager = models.UserManager()
-        password = random.randint(1000, 9999)
-        print(password)
-        phone = request.POST['phone']
-        if 'site' in request.POST:
-            site_id = request.POST['site']
-        else:
-            site_id = None
-
-        user = User.objects.filter(phone=phone).first()
-        if user:
+def register(request):
+    # serializer.save()
+    manager = models.UserManager()
+    password = random.randint(1000, 9999)
+    print(password)
+    phone = request.POST['phone']
+    user = User.objects.filter(phone=phone).first()
+    if user:
+        try:
+            profile = user.profile
+        except Exception:
+            profile = create_profile(user=user)
+        user.set_password(password)
+        user.save()
+    else:
+        with transaction.atomic():
             try:
-                profile = user.profile
-            except Exception:
+                user = manager.create_user(phone, password)
                 profile = create_profile(user=user)
-            user.set_password(password)
-            user.save()
-        else:
-            with transaction.atomic():
-                try:
-                    user = manager.create_user(phone, password)
-                    # modify
-                    # you can set the tariff_id here
-                    profile = create_profile(user=user)
-                except Exception:
-                    log.error("could not create user", request.user)
+            except Exception:
+                log.error("could not create user", request.user)
 
-        # sms_send.send_sms(phone, password)
-        sms.verify(phone, password)
+    # sms_send.send_sms(phone, password)
+    sms.verify(phone, password)
 
-        return Response({'success': 'success'},
-                        status=HTTP_200_OK)
-
-    #     serializer = UserSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         # serializer.save()
-    #         manager = models.UserManager()
-    #         password = random.randint(1000, 9999)
-    #         print(password)
-    #         phone = serializer.validated_data['phone']
-
-
-class LoginView(APIView):
-    pass
+    return Response({'success': 'success'},
+                    status=HTTP_200_OK)
 
 
 @csrf_exempt
