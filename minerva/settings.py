@@ -36,6 +36,7 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     'accounts',
     'rest_framework',
+    'market',
     # added
     'rest_framework.authtoken',
     'background_task',
